@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Runtime dependencies for the backend.
+#
+# Installed into a virtual environment.  On this machine we create the venv
+# with --system-site-packages so the already-installed scientific/AI stack
+# (numpy, pandas, torch, sentence-transformers) is reused instead of being
+# re-downloaded.  A clean machine installs everything declared here.
+# ---------------------------------------------------------------------------
+
+# Web framework & ASGI server
+fastapi>=0.116,<0.117
+uvicorn[standard]>=0.35,<0.36
+python-multipart>=0.0.9,<0.1
+
+# Settings, validation & serialization
+pydantic>=2.11,<3
+pydantic-settings>=2.6,<3
+python-dotenv>=1.0,<2
+
+# Database
+SQLAlchemy>=2.0,<3
+alembic>=1.13,<2
+
+# HTTP client (used for Ollama/OpenAI and tests)
+httpx>=0.28,<0.29
+
+# Synthetic data generation
+Faker>=30,<40
