@@ -1,9 +1,9 @@
 # Implementation Status
 
-Tracks what is **actually built and verified** at each phase. Nothing is marked
-done until its commands have been run and its results observed.
+Tracks what is **actually built and verified**. Nothing is marked done until its
+commands have been run and its results observed.
 
-**Last updated:** Phase 1
+**Last updated:** MVP complete (backend, frontend, RAG, docs, migrations).
 
 ---
 
@@ -11,17 +11,18 @@ done until its commands have been run and its results observed.
 
 | Check | Command | Result |
 |---|---|---|
-| Backend deps installed | `python -m pip install -r requirements-dev.txt` | ✅ ok |
-| Backend tests | `python -m pytest` | ✅ 2 passed |
-| Backend starts | `uvicorn app.main:app` → `GET /api/v1/health` | ✅ HTTP 200 |
-| Frontend deps installed | `npm install` | ✅ ok |
-| Frontend typecheck | `npm run typecheck` | ✅ 0 errors |
+| Backend lint | `python -m ruff check app tests` | ✅ 0 errors |
+| Backend tests | `python -m pytest` | ✅ 54 passed in ~54 s |
+| Backend seed | `python -m app.seed.run_seed` | ✅ 1,000 CPs / 5,000 exposures / 800 collateral / 9,958 source records / 2 snapshots |
+| Sample docs | `python -m app.seed.ingest_samples` | ✅ 3 docs / 15 chunks indexed (local embeddings) |
+| Migrations | `python -m alembic upgrade head` (fresh DB) | ✅ baseline applied; `alembic check` clean |
+| Backend live | `uvicorn app.main:app --port 8000` | ✅ health, dashboard, exposures, risk, quality, recon, documents, assistant, audit all HTTP 200 |
 | Frontend lint | `npm run lint` | ✅ 0 problems |
-| Frontend build | `npm run build` | ✅ built |
-| Frontend dev server | `npm run dev` → `GET localhost:5173` | ✅ HTTP 200 |
+| Frontend typecheck | `npm run typecheck` | ✅ 0 errors |
+| Frontend build | `npm run build` | ✅ vite build ok |
 
 > Note: the frontend dev server binds to IPv6 `::1`; use
-> `http://localhost:5173` (not `127.0.0.1`). The frontend calls the backend at
+> `http://localhost:5173`. The frontend calls the backend at
 > `http://127.0.0.1:8000` (uvicorn's IPv4 default).
 
 ---
@@ -32,48 +33,69 @@ done until its commands have been run and its results observed.
 |-------|-------------|--------|
 | 0 | Environment inspection & stack recommendation | ✅ Complete |
 | 1 | Foundation (structure, config, health check) | ✅ Complete |
-| 2 | Data foundation (schema + synthetic data) | ⏳ Pending |
-| 3 | Risk engine | ⏳ Pending |
-| 4 | Data quality & reconciliation | ⏳ Pending |
-| 5 | Backend APIs | ⏳ Pending |
-| 6 | Regulatory document ingestion | ⏳ Pending |
-| 7 | RAG (retrieval + citations) | ⏳ Pending |
-| 8 | AI tools & orchestration | ⏳ Pending |
-| 9 | Frontend | ⏳ Pending |
-| 10 | Hardening & documentation | ⏳ Pending |
+| 2 | Data foundation (schema + synthetic data) | ✅ Complete |
+| 3 | Risk engine | ✅ Complete |
+| 4 | Data quality & reconciliation | ✅ Complete |
+| 5 | Backend APIs | ✅ Complete |
+| 6 | Regulatory document ingestion | ✅ Complete |
+| 7 | RAG (retrieval + citations) | ✅ Complete |
+| 8 | AI tools & orchestration | ✅ Complete |
+| 9 | Frontend | ✅ Complete |
+| 10 | Hardening & documentation | ✅ Complete |
 
 ---
 
-## Phase 1 — Foundation (complete)
+## What exists now
 
-**Files created**
+### Backend (`backend/app`)
 
-- `README.md`, `.gitignore`
-- `backend/requirements.txt`, `backend/requirements-dev.txt`, `backend/.env.example`
-- `backend/pytest.ini`, `backend/ruff.toml`
-- `backend/app/__init__.py`, `app/main.py`
-- `backend/app/core/{config.py,logging.py}`
-- `backend/app/api/routes/health.py`
-- `backend/tests/test_health.py`
-- `frontend/` (package.json, vite config, tsconfig, eslint config, index.html)
-- `frontend/src/` (app shell, layout, health badge, API client, 7 page shells)
-- `docs/architecture.md`, `docs/architecture_decisions.md`, `docs/implementation_status.md`
+- **Schema:** 23 tables across master data, reference rules (versioned,
+  effective-dated risk weights + FX), source snapshots, processing history
+  (RWA runs/results, DQ rules/runs/findings, recon runs/results), knowledge
+  (documents + chunks with embeddings), AI (requests + tool executions), audit.
+- **Deterministic engines:** `risk_engine` (explicit unsupported outcomes, never
+  guesses), `data_quality` (9 versioned rules, two-layer anomaly split),
+  `reconciliation` (5 outcome buckets, tolerance stored per run).
+- **AI:** custom intent-router orchestration (no LangChain); six allow-listed
+  read-only tools in `tools/registry.py`; LLM adapters (ollama / openai /
+  mock); embedding adapters (sentence-transformers / deterministic hashing
+  fallback); retrieval + citation composition; explicit insufficient-evidence
+  behavior.
+- **APIs:** health, dashboard, exposures, risk, quality, reconciliation,
+  documents (+ search), assistant, audit — all under `/api/v1`.
+- **Reproducibility:** `app/seed/run_seed` (seeded RNG 42 + Faker) writes
+  `data/seed_manifest.json` as ground truth; `app/seed/ingest_samples` indexes
+  the bundled sample documents.
 
-**Features completed**
+### Frontend (`frontend/src`)
 
-- FastAPI application factory with lifespan logging and CORS.
-- Environment-driven configuration (`text`/`json` logging).
-- `GET /api/v1/health` and `GET /` banner.
-- React SPA shell with navigation for all seven application areas.
-- Live backend health indicator in the UI header.
-- Honest placeholder pages that state which phase delivers them.
+- 8 routed pages: Dashboard, Exposures, Risk & RWA, Data Quality,
+  Reconciliation, Regulatory Documents, AI Risk Assistant, Audit & Runs.
+- Real endpoints only; honest loading/error/empty states; Recharts
+  visualisations (severity pie, per-rule bars, recon breakdown, RWA outcome).
+- No fake data anywhere in the UI.
 
-**Known limitations**
+### Migrations (`backend/alembic`)
 
-- Frontend automated tests (Vitest) are introduced in Phase 9/10; the
-  `npm test` script is intentionally absent until then.
-- Health endpoint does not yet probe the database or AI provider (those
-  arrive with Phases 2 and 8).
-- Placeholder pages show no data yet — by design, they contain no fake metrics.
+- `alembic init` + environment wired to app settings; one baseline revision
+  (autogenerated from the live models); verified `upgrade head` on a fresh DB
+  and `alembic check` clean against the dev database (stamped).
 
-**Next phase:** Phase 2 — database schema + reproducible synthetic data generator.
+### Sample corpus (`backend/data/sample_docs`)
+
+- 3 clearly-labelled sample regulatory .md files (see
+  `docs/regulatory_sources.md`) with numbered headings that chunk into
+  sections; ingested and searchable offline.
+
+## Knowledge base for the demo
+
+Question routing in the assistant distinguishes *structured-data questions*
+(tools) from *regulatory questions* (RAG). Regulatory questions with no
+matching evidence return an explicit insufficient-evidence answer and are
+asserted by tests. Ingesting the sample docs (one command) makes regulatory
+questions fully citeable.
+
+## Next phase
+
+Beyond MVP: CI matrix, PostgreSQL migration, retrieval benchmark harness and
+frontend unit tests (each already scoped in `docs/evaluation.md`).

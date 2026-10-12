@@ -10,6 +10,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard" },
   { to: "/exposures", label: "Exposures" },
+  { to: "/risk", label: "Risk & RWA" },
   { to: "/data-quality", label: "Data Quality" },
   { to: "/reconciliation", label: "Reconciliation" },
   { to: "/documents", label: "Regulatory Documents" },

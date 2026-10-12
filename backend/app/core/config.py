@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
 
     # --- Embeddings (local) ------------------------------------------------
+    # backend: "auto" (try real model, fall back to hashing) | "sentence-transformers" | "hashing"
+    embedding_backend: str = "auto"
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # --- Retrieval ---------------------------------------------------------

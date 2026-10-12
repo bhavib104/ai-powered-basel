@@ -3,6 +3,10 @@
 Run locally with::
 
     uvicorn app.main:app --reload --port 8000
+
+First-time setup::
+
+    python -m app.seed.run_seed    # creates schema + seeds synthetic data
 """
 
 from __future__ import annotations
@@ -10,12 +14,14 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import __version__
-from app.api.routes import health
+from app.api.routes.router import api_router
 from app.core.config import get_settings
+from app.core.exceptions import AppError
 from app.core.logging import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -23,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup / shutdown lifecycle."""
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_format)
     logger.info(
@@ -59,6 +64,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.exception_handler(AppError)
+    async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": {"code": exc.code, "message": exc.message}},
+        )
+
     @app.get("/", tags=["meta"], summary="Service banner")
     def root() -> dict[str, object]:
         return {
@@ -68,7 +80,7 @@ def create_app() -> FastAPI:
             "health": f"{settings.api_v1_prefix}/health",
         }
 
-    app.include_router(health.router, prefix=settings.api_v1_prefix)
+    app.include_router(api_router, prefix=settings.api_v1_prefix)
 
     return app
 

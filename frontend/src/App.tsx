@@ -8,6 +8,7 @@ import { DataQualityPage } from "./pages/DataQualityPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { ExposuresPage } from "./pages/ExposuresPage";
 import { ReconciliationPage } from "./pages/ReconciliationPage";
+import { RiskRwaPage } from "./pages/RiskRwaPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="exposures" element={<ExposuresPage />} />
+        <Route path="risk" element={<RiskRwaPage />} />
         <Route path="data-quality" element={<DataQualityPage />} />
         <Route path="reconciliation" element={<ReconciliationPage />} />
         <Route path="documents" element={<DocumentsPage />} />

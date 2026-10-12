@@ -45,7 +45,9 @@ ai-powered-basel/
 
 ## Status
 
-This project is being built **phase by phase**. See
+The MVP is **complete**: deterministic engines, backend APIs, RAG over bundled
+sample regulatory documents, a controlled AI assistant, a full React UI and
+SQLAlchemy migrations — all verified by 54 passing tests. See
 [`docs/implementation_status.md`](docs/implementation_status.md) for the current
 state and [`docs/architecture.md`](docs/architecture.md) for the design.
 
@@ -53,36 +55,50 @@ state and [`docs/architecture.md`](docs/architecture.md) for the design.
 |-------|-------------|--------|
 | 0 | Environment inspection & stack recommendation | ✅ Done |
 | 1 | Foundation (structure, config, health check) | ✅ Done |
-| 2 | Data foundation (schema + synthetic data) | 🚧 Next |
-| 3 | Risk engine | ⏳ Pending |
-| 4 | Data quality & reconciliation | ⏳ Pending |
-| 5 | Backend APIs | ⏳ Pending |
-| 6 | Regulatory document ingestion | ⏳ Pending |
-| 7 | RAG (retrieval + citations) | ⏳ Pending |
-| 8 | AI tools & orchestration | ⏳ Pending |
-| 9 | Frontend | ⏳ Pending |
-| 10 | Hardening & documentation | ⏳ Pending |
+| 2 | Data foundation (schema + synthetic data) | ✅ Done |
+| 3 | Risk engine | ✅ Done |
+| 4 | Data quality & reconciliation | ✅ Done |
+| 5 | Backend APIs | ✅ Done |
+| 6 | Regulatory document ingestion | ✅ Done |
+| 7 | RAG (retrieval + citations) | ✅ Done |
+| 8 | AI tools & orchestration | ✅ Done |
+| 9 | Frontend | ✅ Done |
+| 10 | Hardening & documentation | ✅ Done |
 
 ---
 
 ## Quick start
 
-> Setup instructions are completed as each phase lands. Full details will live
-> here and in `docs/architecture.md`.
-
-### Backend
+### 1. Backend
 
 ```powershell
 cd backend
 python -m venv --system-site-packages .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-dev.txt
-uvicorn app.main:app --reload --port 8000
 ```
 
-Then open <http://localhost:8000/api/v1/health>.
+Create the database with reproducible synthetic data (1,000 counterparties,
+5,000 exposures, seeded anomalies, rule & FX tables):
 
-### Frontend
+```powershell
+python -m app.seed.run_seed          # writes data/basel.db + seed_manifest.json
+python -m app.seed.ingest_samples    # index the 3 sample regulatory docs for RAG
+```
+
+Run the API:
+
+```powershell
+uvicorn app.main:app --port 8000
+```
+
+Open <http://localhost:8000/api/v1/health>.
+
+> Alternatively migrate an empty schema with Alembic instead of seeding:
+> `python -m alembic upgrade head` (baseline includes every table; data seeding
+> is then optional).
+
+### 2. Frontend
 
 ```powershell
 cd frontend
@@ -91,6 +107,36 @@ npm run dev
 ```
 
 Then open <http://localhost:5173>.
+
+### 3. Try it
+
+- **Risk & RWA** → *Run calculation* (rule version `2024.1`), then open any
+  row to see the step-by-step explanation JSON.
+- **Data Quality** → *Run checks* (the seeded dataset surfaces 142 findings).
+- **Reconciliation** → reconcile `SRC-A` ↔ `SRC-B`.
+- **Regulatory Documents** → search e.g. *"risk weight for retail mortgages"*
+  or ingest your own `.txt` / `.md` / text-PDF.
+- **AI Risk Assistant** → ask a structured-data question (e.g. *"total RWA for
+  corporate exposures"*) or a regulatory question (e.g. *"how is eligible
+  collateral treated?"*). Answers show citations and the tool trail; with no
+  matching evidence the assistant says so instead of inventing text.
+- **Audit & Runs** → every run and assistant exchange is in the append-only
+  audit trail.
+
+### Tests & lint
+
+```powershell
+cd backend
+python -m pytest          # 54 tests, isolated seeded DBs
+python -m ruff check app tests
+cd ..\frontend
+npm run typecheck && npm run lint && npm run build
+```
+
+> **AI settings:** `llm_provider` defaults to `ollama` (model `mistral`).
+> Set `LLM_PROVIDER=mock` in `backend/.env` for deterministic, offline answers,
+> or `LLM_PROVIDER=openai` (requires `OPENAI_API_KEY`). Embeddings default to
+> `auto` — real model when installed, deterministic hashing otherwise.
 
 ---
 
