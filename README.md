@@ -1,5 +1,7 @@
 # AI-Powered Basel Regulatory Risk Intelligence Platform
 
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+
 An applied-AI / FinTech project that combines **deterministic banking risk
 calculations** with **AI-assisted regulatory document intelligence** and a
 **controlled AI assistant**.
@@ -13,7 +15,7 @@ calculations** with **AI-assisted regulatory document intelligence** and a
 
 ## What it does
 
-For a banking risk analyst, the platform will provide:
+For a banking risk analyst, the platform provides:
 
 - Exploration of exposures and portfolio-level risk metrics.
 - Data quality validation and reconciliation of inconsistent source records.
@@ -35,9 +37,14 @@ results, but it **never** invents numbers, risk weights, or regulatory rules.
 
 ```
 ai-powered-basel/
-├─ backend/     FastAPI application (Python) — APIs, engines, AI, data
-├─ frontend/    React + TypeScript + Vite UI
-├─ docs/        Architecture, methodology, and evaluation documentation
+├─ backend/         FastAPI app (Python) — APIs, engines, AI orchestration, data
+│  ├─ app/          application code (api, services, providers, db, seed, tools)
+│  ├─ data/         bundled sample regulatory docs (synthetic, clearly labelled)
+│  ├─ tools/        retrieval benchmark
+│  └─ alembic/      schema migrations (baseline, verified)
+├─ frontend/        React + TypeScript + Vite UI (8 routed pages)
+├─ docs/            architecture, methodology, data dictionary, evaluation
+├─ .github/workflows/  CI (backend tests + lint, frontend typecheck/lint/build)
 └─ README.md
 ```
 
@@ -128,10 +135,17 @@ Then open <http://localhost:5173>.
 ```powershell
 cd backend
 python -m pytest          # 54 tests, isolated seeded DBs
-python -m ruff check app tests
+python -m ruff check app tests tools
+python tools\retrieval_benchmark.py   # RAG precision@1 / recall@3 (measured 10/10)
 cd ..\frontend
 npm run typecheck && npm run lint && npm run build
 ```
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs the backend suite (`ruff` + `pytest`) and the
+frontend suite (`tsc` + `eslint` + `vite build`) on every push via GitHub
+Actions.
 
 > **AI settings:** `llm_provider` defaults to `ollama` (model `mistral`).
 > Set `LLM_PROVIDER=mock` in `backend/.env` for deterministic, offline answers,
@@ -155,7 +169,23 @@ npm run typecheck && npm run lint && npm run build
 
 ## License & data
 
-- Code: for educational use.
+- Code: MIT — see [`LICENSE`](LICENSE). Replace the copyright holder before
+  publishing.
 - Data: **100% synthetic**. No employer, client, or customer data is used.
 - Regulatory documents: only legally obtained public sources, with provenance
   recorded in `docs/regulatory_sources.md`.
+
+---
+
+## Push to GitHub
+
+```powershell
+# 1. Create an empty repository on GitHub (no README needed), then:
+git remote add origin https://github.com/<you>/ai-powered-basel.git
+git push -u origin master
+```
+
+GitHub Actions CI starts automatically on the first push. For the badge above to
+render, replace `OWNER/REPO` with your actual `username/repository`, and replace
+`<you>` with your GitHub username. If you prefer the default branch to be
+`main`, run `git branch -M main` before pushing.

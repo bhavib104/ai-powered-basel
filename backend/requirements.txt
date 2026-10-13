@@ -21,6 +21,10 @@ python-dotenv>=1.0,<2
 SQLAlchemy>=2.0,<3
 alembic>=1.13,<2
 
+# Numerics (vector similarity for retrieval, PDF text extraction helper)
+numpy>=2.0,<3
+pypdf>=5,<6
+
 # HTTP client (used for Ollama/OpenAI and tests)
 httpx>=0.28,<0.29
 
